@@ -69,12 +69,11 @@ class FiPet(object):
                 self._currLatitude = float(activityJSON['position']['latitude'])
             self._currStartTime = datetime.datetime.fromisoformat(activityJSON['start'].replace('Z', '+00:00'))
 
-            if 'place' in activityJSON:
-                self._currPlaceName = activityJSON['place']['name']
-                self._currPlaceAddress = activityJSON['place']['address']
-            else:
-                self._currPlaceName = None
-                self._currPlaceAddress = None
+            # OngoingRest always carries a 'place' key, but it is null when the
+            # pet is resting somewhere that isn't a saved TryFi place
+            place = activityJSON.get('place') or {}
+            self._currPlaceName = place.get('name')
+            self._currPlaceAddress = place.get('address')
             self._lastUpdated = datetime.datetime.now()
         except TryFiError as e:
             capture_exception(e)
@@ -82,6 +81,7 @@ class FiPet(object):
             raise TryFiError("Unable to set Pet Location Details")
         except Exception as e:
             capture_exception(e)
+            LOGGER.warning(f"Unable to parse Current Location for Pet {self.name}: {e!r}")
 
     def setConnectedTo(self, connectedToJSON):
         connectedToString = ""
